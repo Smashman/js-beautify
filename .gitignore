@@ -1,3 +1,13 @@
+*.orig
 node_modules
-*.pyc
 gh-pages
+gh
+
+*.pyc
+python/MANIFEST
+python/build
+python/dist
+python/jsbeautifier.egg-info
+
+target
+.idea/

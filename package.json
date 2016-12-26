@@ -1,25 +1,23 @@
 {
   "name": "js-beautify",
-  "version": "1.2.0",
+  "version": "1.6.5",
   "description": "jsbeautifier.org for node",
-  "main": "index.js",
-  "preferGlobal": true,
+  "main": "js/index.js",
   "bin": {
-    "css-beautify": "./bin/css-beautify.js",
-    "html-beautify": "./bin/html-beautify.js",
-    "js-beautify": "./bin/js-beautify.js"
+    "css-beautify": "./js/bin/css-beautify.js",
+    "html-beautify": "./js/bin/html-beautify.js",
+    "js-beautify": "./js/bin/js-beautify.js"
   },
   "directories": {
-    "test": "tests"
+    "lib": "js/lib",
+    "test": "js/test"
   },
-  "scripts": {
-    "test": "node ./tests/node-beautify-tests.js"
-  },
-  "bugs": "https://github.com/einars/js-beautify/issues",
+  "scripts": {},
+  "bugs": "https://github.com/beautify-web/js-beautify/issues",
   "homepage": "http://jsbeautifier.org/",
   "repository": {
     "type": "git",
-    "url": "git://github.com/einars/js-beautify.git"
+    "url": "git://github.com/beautify-web/js-beautify.git"
   },
   "keywords": [
     "beautify",
@@ -41,9 +39,15 @@
   "license": "MIT",
   "dependencies": {
     "config-chain": "~1.1.5",
-    "nopt": "~2.1.1"
+    "editorconfig": "^0.13.2",
+    "mkdirp": "~0.5.0",
+    "nopt": "~3.0.1"
   },
   "devDependencies": {
-    "jshint": "1.1.0"
+    "jshint": "~2.9.1",
+    "node-static": "~0.7.1",
+    "mustache": "~2.2.1",
+    "requirejs": "2.1.x",
+    "benchmark": "2.1.0"
   }
 }
