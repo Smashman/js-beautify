@@ -45,8 +45,19 @@ build_js()
     echo Building javascript...
     npm install || exit 1
     generate_tests
+
+    # generate lib files
+    ./node_modules/.bin/webpack
+
+    echo '' > ./js/lib/beautify.js
+    cat ./tools/template/beautify.begin.js >> ./js/lib/beautify.js
+    cat ./dist/legacy_beautify_js.js >> ./js/lib/beautify.js
+    cat ./tools/template/beautify.end.js >> ./js/lib/beautify.js
+
+
+
     # jshint
-    $PROJECT_DIR/node_modules/.bin/jshint 'js' 'test' || exit 1
+    $PROJECT_DIR/node_modules/.bin/jshint 'js/src' 'test' || exit 1
 
     # beautify test and data
     $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/test/amd-beautify-tests.js || exit 1
@@ -76,7 +87,7 @@ build_js()
     # $PROJECT_DIR/js/bin/html-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r index.html
 
     # jshint again to make sure things haven't changed
-    $PROJECT_DIR/node_modules/.bin/jshint 'js' 'test' || exit 1
+    $PROJECT_DIR/node_modules/.bin/jshint 'js/src' 'test' || exit 1
 }
 
 generate_tests()

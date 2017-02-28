@@ -10,4 +10,5 @@ python/dist
 python/jsbeautifier.egg-info
 
 target
+dist/
 .idea/
