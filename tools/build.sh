@@ -59,6 +59,10 @@ build_js()
     cat ./dist/legacy_beautify_css.js >> ./js/lib/beautify-css.js
     cat ./tools/template/beautify-css.end.js >> ./js/lib/beautify-css.js
 
+    cat ./tools/template/beautify-html.begin.js > ./js/lib/beautify-html.js
+    cat ./dist/legacy_beautify_html.js >> ./js/lib/beautify-html.js
+    cat ./tools/template/beautify-html.end.js >> ./js/lib/beautify-html.js
+
     # jshint
     $PROJECT_DIR/node_modules/.bin/jshint 'js/src' 'test' || exit 1
 
@@ -81,7 +85,8 @@ build_js()
     $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/lib/unpackers/urlencode_unpacker.js || exit 1
     # $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/lib/beautify-css.js || exit 1
     $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/src/css/index.js || exit 1
-    $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/lib/beautify-html.js || exit 1
+    # $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/lib/beautify-html.js || exit 1
+    $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/src/html/index.js || exit 1
     # $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/lib/beautify.js || exit 1
     $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/src/javascript/index.js || exit 1
     $PROJECT_DIR/js/bin/js-beautify.js --config $PROJECT_DIR/jsbeautifyrc -r $PROJECT_DIR/js/lib/cli.js || exit 1

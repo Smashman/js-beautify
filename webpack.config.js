@@ -25,6 +25,19 @@ var legacy_css = {
   }
 };
 
+var legacy_html = {
+  entry: './js/src/html/index.js',
+  resolve: {
+    modules: [ path.resolve(__dirname, "js/src") ]
+  },
+  output: {
+    library: 'legacy_beautify_html',
+    filename: 'legacy_beautify_html.js',
+    path: path.resolve(__dirname, 'dist')
+  }
+};
+
+
 var dist_js = {
   entry: './js/src/index.js',
   output: {
@@ -36,4 +49,4 @@ var dist_js = {
   }
 };
 
-module.exports = [dist_js, legacy_js, legacy_css];
+module.exports = [dist_js, legacy_js, legacy_css, legacy_html];
