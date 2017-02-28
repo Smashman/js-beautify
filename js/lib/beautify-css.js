@@ -235,70 +235,44 @@
         }
 
         // printer
-        var basebaseIndentString = source_text.match(/^[\t ]*/)[0];
+        var baseIndentString = '';
+        var preindent_index = 0;
+        if (source_text && source_text.length) {
+            while ((source_text.charAt(preindent_index) === ' ' ||
+                    source_text.charAt(preindent_index) === '\t')) {
+                preindent_index += 1;
+            }
+            baseIndentString = source_text.substring(0, preindent_index);
+            js_source_text = source_text.substring(preindent_index);
+        }
+
+
         var singleIndent = new Array(indentSize + 1).join(indentCharacter);
         var indentLevel = 0;
         var nestedLevel = 0;
+        var output = new Output(singleIndent, baseIndentString);
+
+        function print_string(output_string) {
+            if (output.just_added_newline()) {
+                output.set_indent(indentLevel);
+            }
+            output.add_token(output_string);
+        }
+
+        function preserveSingleSpace() {
+            if (isAfterSpace) {
+                output.space_before_token = true;
+            }
+        }
 
         function indent() {
             indentLevel++;
-            basebaseIndentString += singleIndent;
         }
 
         function outdent() {
             indentLevel--;
-            basebaseIndentString = basebaseIndentString.slice(0, -indentSize);
         }
 
-        var print = {};
-        print["{"] = function(ch) {
-            print.singleSpace();
-            output.push(ch);
-            print.newLine();
-        };
-        print["}"] = function(ch) {
-            print.newLine();
-            output.push(ch);
-            print.newLine();
-        };
-
-        print._lastCharWhitespace = function() {
-            return whiteRe.test(output[output.length - 1]);
-        };
-
-        print.newLine = function(keepWhitespace) {
-            if (output.length) {
-                if (!keepWhitespace && output[output.length - 1] !== '\n') {
-                    print.trim();
-                }
-
-                output.push('\n');
-
-                if (basebaseIndentString) {
-                    output.push(basebaseIndentString);
-                }
-            }
-        };
-        print.singleSpace = function() {
-            if (output.length && !print._lastCharWhitespace()) {
-                output.push(' ');
-            }
-        };
-
-        print.preserveSingleSpace = function() {
-            if (isAfterSpace) {
-                print.singleSpace();
-            }
-        };
-
-        print.trim = function() {
-            while (print._lastCharWhitespace()) {
-                output.pop();
-            }
-        };
-
-
-        var output = [];
         /*_____________________--------------------_____________________*/
 
         var insideRule = false;
@@ -320,29 +294,29 @@
                 var header = indentLevel === 0;
 
                 if (isAfterNewline || header) {
-                    print.newLine();
+                    output.add_new_line();
                 }
 
-                output.push(eatComment());
-                print.newLine();
+                print_string(eatComment());
+                output.add_new_line();
                 if (header) {
-                    print.newLine(true);
+                    output.add_new_line(true);
                 }
             } else if (ch === '/' && peek() === '/') { // single line comment
                 if (!isAfterNewline && last_top_ch !== '{') {
-                    print.trim();
+                    output.trim(true);
                 }
-                print.singleSpace();
-                output.push(eatComment());
-                print.newLine();
+                output.space_before_token = true;
+                print_string(eatComment());
+                output.add_new_line();
             } else if (ch === '@') {
-                print.preserveSingleSpace();
+                preserveSingleSpace();
 
                 // deal with less propery mixins @{...}
                 if (peek() === '{') {
-                    output.push(eatString('}'));
+                    print_string(eatString('}'));
                 } else {
-                    output.push(ch);
+                    print_string(ch);
 
                     // strip trailing space, if present, for hash property checks
                     var variableOrRule = peekString(": ,;{}()[]/='\"");
@@ -351,8 +325,8 @@
                         // we have a variable or pseudo-class, add it and insert one space before continuing
                         next();
                         variableOrRule = eatString(": ").replace(/\s$/, '');
-                        output.push(variableOrRule);
-                        print.singleSpace();
+                        print_string(variableOrRule);
+                        output.space_before_token = true;
                     }
 
                     variableOrRule = variableOrRule.replace(/\s$/, '');
@@ -366,21 +340,24 @@
                     }
                 }
             } else if (ch === '#' && peek() === '{') {
-                print.preserveSingleSpace();
-                output.push(eatString('}'));
+                preserveSingleSpace();
+                print_string(eatString('}'));
             } else if (ch === '{') {
                 if (peek(true) === '}') {
                     eatWhitespace();
                     next();
-                    print.singleSpace();
-                    output.push("{}");
-                    print.newLine();
+                    output.space_before_token = true;
+                    print_string("{}");
+                    output.add_new_line();
                     if (newline_between_rules && indentLevel === 0) {
-                        print.newLine(true);
+                        output.add_new_line(true);
                     }
                 } else {
                     indent();
-                    print["{"](ch);
+                    output.space_before_token = true;
+                    print_string(ch);
+                    output.add_new_line();
+
                     // when entering conditional groups, only rulesets are allowed
                     if (enteringConditionalGroup) {
                         enteringConditionalGroup = false;
@@ -392,14 +369,16 @@
                 }
             } else if (ch === '}') {
                 outdent();
-                print["}"](ch);
+                output.add_new_line();
+                print_string(ch);
+                output.add_new_line();
                 insideRule = false;
                 insidePropertyValue = false;
                 if (nestedLevel) {
                     nestedLevel--;
                 }
                 if (newline_between_rules && indentLevel === 0) {
-                    print.newLine(true);
+                    output.add_new_line(true);
                 }
             } else if (ch === ":") {
                 eatWhitespace();
@@ -408,72 +387,72 @@
                     !lookBack("(")) {
                     // 'property: value' delimiter
                     // which could be in a conditional group query
-                    output.push(':');
+                    print_string(':');
                     if (!insidePropertyValue) {
                         insidePropertyValue = true;
-                        print.singleSpace();
+                        output.space_before_token = true;
                     }
                 } else {
                     // sass/less parent reference don't use a space
                     // sass nested pseudo-class don't use a space
 
                     // preserve space before pseudoclasses/pseudoelements, as it means "in any child"
-                    if (lookBack(" ") && output[output.length - 1] !== " ") {
-                        output.push(" ");
+                    if (lookBack(" ")) {
+                        output.space_before_token = true;
                     }
                     if (peek() === ":") {
                         // pseudo-element
                         next();
-                        output.push("::");
+                        print_string("::");
                     } else {
                         // pseudo-class
-                        output.push(':');
+                        print_string(':');
                     }
                 }
             } else if (ch === '"' || ch === '\'') {
-                print.preserveSingleSpace();
-                output.push(eatString(ch));
+                preserveSingleSpace();
+                print_string(eatString(ch));
             } else if (ch === ';') {
                 insidePropertyValue = false;
-                output.push(ch);
-                print.newLine();
+                print_string(ch);
+                output.add_new_line();
             } else if (ch === '(') { // may be a url
                 if (lookBack("url")) {
-                    output.push(ch);
+                    print_string(ch);
                     eatWhitespace();
                     if (next()) {
                         if (ch !== ')' && ch !== '"' && ch !== '\'') {
-                            output.push(eatString(')'));
+                            print_string(eatString(')'));
                         } else {
                             pos--;
                         }
                     }
                 } else {
                     parenLevel++;
-                    print.preserveSingleSpace();
-                    output.push(ch);
+                    preserveSingleSpace();
+                    print_string(ch);
                     eatWhitespace();
                 }
             } else if (ch === ')') {
-                output.push(ch);
+                print_string(ch);
                 parenLevel--;
             } else if (ch === ',') {
-                output.push(ch);
+                print_string(ch);
                 eatWhitespace();
                 if (selectorSeparatorNewline && !insidePropertyValue && parenLevel < 1) {
-                    print.newLine();
+                    output.add_new_line();
                 } else {
-                    print.singleSpace();
+                    output.space_before_token = true;
                 }
             } else if ((ch === '>' || ch === '+' || ch === '~') &&
                 !insidePropertyValue && parenLevel < 1) {
                 //handle combinator spacing
                 if (space_around_combinator) {
-                    print.singleSpace();
-                    output.push(ch);
-                    print.singleSpace();
+                    output.space_before_token = true;
+                    print_string(ch);
+                    output.space_before_token = true;
                 } else {
-                    output.push(ch);
+                    print_string(ch);
                     eatWhitespace();
                     // squash extra whitespace
                     if (ch && whiteRe.test(ch)) {
@@ -481,36 +460,21 @@
                     }
                 }
             } else if (ch === ']') {
-                output.push(ch);
+                print_string(ch);
             } else if (ch === '[') {
-                print.preserveSingleSpace();
-                output.push(ch);
+                preserveSingleSpace();
+                print_string(ch);
             } else if (ch === '=') { // no whitespace before or after
                 eatWhitespace();
                 ch = '=';
-                output.push(ch);
+                print_string(ch);
             } else {
-                print.preserveSingleSpace();
-                output.push(ch);
+                preserveSingleSpace();
+                print_string(ch);
             }
         }
 
-
-        var sweetCode = '';
-        if (basebaseIndentString) {
-            sweetCode += basebaseIndentString;
-        }
-
-        sweetCode += output.join('').replace(/[\r\n\t ]+$/, '');
-
-        // establish end_with_newline
-        if (end_with_newline) {
-            sweetCode += '\n';
-        }
-
-        if (eol !== '\n') {
-            sweetCode = sweetCode.replace(/[\n]/g, eol);
-        }
+        var sweetCode = output.get_code(end_with_newline, eol);
 
         return sweetCode;
     }
@@ -530,6 +494,225 @@
         "@supports": true,
         "@document": true
     };
+
+    function OutputLine(parent) {
+        var _character_count = 0;
+        // use indent_count as a marker for lines that have preserved indentation
+        var _indent_count = -1;
+
+        var _items = [];
+        var _empty = true;
+
+        this.set_indent = function(level) {
+            _character_count = parent.baseIndentLength + level * parent.indent_length;
+            _indent_count = level;
+        };
+
+        this.get_character_count = function() {
+            return _character_count;
+        };
+
+        this.is_empty = function() {
+            return _empty;
+        };
+
+        this.last = function() {
+            if (!this._empty) {
+                return _items[_items.length - 1];
+            } else {
+                return null;
+            }
+        };
+
+        this.push = function(input) {
+            _items.push(input);
+            _character_count += input.length;
+            _empty = false;
+        };
+
+        this.pop = function() {
+            var item = null;
+            if (!_empty) {
+                item = _items.pop();
+                _character_count -= item.length;
+                _empty = _items.length === 0;
+            }
+            return item;
+        };
+
+        this.remove_indent = function() {
+            if (_indent_count > 0) {
+                _indent_count -= 1;
+                _character_count -= parent.indent_length;
+            }
+        };
+
+        this.trim = function() {
+            while (this.last() === ' ') {
+                _items.pop();
+                _character_count -= 1;
+            }
+            _empty = _items.length === 0;
+        };
+
+        this.toString = function() {
+            var result = '';
+            if (!this._empty) {
+                if (_indent_count >= 0) {
+                    result = parent.indent_cache[_indent_count];
+                }
+                result += _items.join('');
+            }
+            return result;
+        };
+    }
+
+    function Output(indent_string, baseIndentString) {
+        baseIndentString = baseIndentString || '';
+        this.indent_cache = [baseIndentString];
+        this.baseIndentLength = baseIndentString.length;
+        this.indent_length = indent_string.length;
+        this.raw = false;
+
+        var lines = [];
+        this.baseIndentString = baseIndentString;
+        this.indent_string = indent_string;
+        this.previous_line = null;
+        this.current_line = null;
+        this.space_before_token = false;
+
+        this.add_outputline = function() {
+            this.previous_line = this.current_line;
+            this.current_line = new OutputLine(this);
+            lines.push(this.current_line);
+        };
+
+        // initialize
+        this.add_outputline();
+
+
+        this.get_line_number = function() {
+            return lines.length;
+        };
+
+        // Using object instead of string to allow for later expansion of info about each line
+        this.add_new_line = function(force_newline) {
+            if (this.get_line_number() === 1 && this.just_added_newline()) {
+                return false; // no newline on start of file
+            }
+
+            if (force_newline || !this.just_added_newline()) {
+                if (!this.raw) {
+                    this.add_outputline();
+                }
+                return true;
+            }
+
+            return false;
+        };
+
+        this.get_code = function(end_with_newline, eol) {
+            var sweet_code = lines.join('\n').replace(/[\r\n\t ]+$/, '');
+
+            if (end_with_newline) {
+                sweet_code += '\n';
+            }
+
+            if (eol !== '\n') {
+                sweet_code = sweet_code.replace(/[\n]/g, eol);
+            }
+
+            return sweet_code;
+        };
+
+        this.set_indent = function(level) {
+            // Never indent your first output indent at the start of the file
+            if (lines.length > 1) {
+                while (level >= this.indent_cache.length) {
+                    this.indent_cache.push(this.indent_cache[this.indent_cache.length - 1] + this.indent_string);
+                }
+
+                this.current_line.set_indent(level);
+                return true;
+            }
+            this.current_line.set_indent(0);
+            return false;
+        };
+
+        this.add_raw_token = function(token) {
+            for (var x = 0; x < token.newlines; x++) {
+                this.add_outputline();
+            }
+            this.current_line.push(token.whitespace_before);
+            this.current_line.push(token.text);
+            this.space_before_token = false;
+        };
+
+        this.add_token = function(printable_token) {
+            this.add_space_before_token();
+            this.current_line.push(printable_token);
+        };
+
+        this.add_space_before_token = function() {
+            if (this.space_before_token && !this.just_added_newline()) {
+                this.current_line.push(' ');
+            }
+            this.space_before_token = false;
+        };
+
+        this.remove_redundant_indentation = function(frame) {
+            // This implementation is effective but has some issues:
+            //     - can cause line wrap to happen too soon due to indent removal
+            //           after wrap points are calculated
+            // These issues are minor compared to ugly indentation.
+
+            if (frame.multiline_frame ||
+                frame.mode === MODE.ForInitializer ||
+                frame.mode === MODE.Conditional) {
+                return;
+            }
+
+            // remove one indent from each line inside this section
+            var index = frame.start_line_index;
+
+            var output_length = lines.length;
+            while (index < output_length) {
+                lines[index].remove_indent();
+                index++;
+            }
+        };
+
+        this.trim = function(eat_newlines) {
+            eat_newlines = (eat_newlines === undefined) ? false : eat_newlines;
+
+            this.current_line.trim(indent_string, baseIndentString);
+
+            while (eat_newlines && lines.length > 1 &&
+                this.current_line.is_empty()) {
+                lines.pop();
+                this.current_line = lines[lines.length - 1];
+                this.current_line.trim();
+            }
+
+            this.previous_line = lines.length > 1 ? lines[lines.length - 2] : null;
+        };
+
+        this.just_added_newline = function() {
+            return this.current_line.is_empty();
+        };
+
+        this.just_added_blankline = function() {
+            if (this.just_added_newline()) {
+                if (lines.length === 1) {
+                    return true; // start of the file and newline = blank
+                }
+
+                var line = lines[lines.length - 2];
+                return line.is_empty();
+            }
+            return false;
+        };
+    }
 
     /*global define */
     if (typeof define === "function" && define.amd) {
