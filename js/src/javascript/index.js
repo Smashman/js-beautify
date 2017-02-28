@@ -27,7 +27,7 @@
 */
 
 var mergeOpts = require('core/options').mergeOpts;
-var acorn = require('./acorn');
+var acorn = require('core/acorn');
 var Output = require('core/output').Output;
 var InputScanner = require('core/inputscanner').InputScanner;
 var Token = require('core/token').Token;

@@ -13,6 +13,18 @@ var legacy_js = {
 
 };
 
+var legacy_css = {
+  entry: './js/src/css/index.js',
+  resolve: {
+    modules: [ path.resolve(__dirname, "js/src") ]
+  },
+  output: {
+    library: 'legacy_beautify_css',
+    filename: 'legacy_beautify_css.js',
+    path: path.resolve(__dirname, 'dist')
+  }
+};
+
 var dist_js = {
   entry: './js/src/index.js',
   output: {
@@ -24,4 +36,4 @@ var dist_js = {
   }
 };
 
-module.exports = [legacy_js, dist_js];
+module.exports = [dist_js, legacy_js, legacy_css];
