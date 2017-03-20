@@ -8,7 +8,7 @@ import string
 import errno
 import copy
 from jsbeautifier.__version__ import __version__
-from javascript.acorn import Acorn
+from jsbeautifier.javascript.acorn import Acorn
 
 #
 # The MIT License (MIT)
