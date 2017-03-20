@@ -582,8 +582,10 @@ function css_beautify(source_text, options) {
 
     source_text = source_text || '';
 
+    var newlinesFromLastWSEat = 0;
     var indentSize = options.indent_size ? parseInt(options.indent_size, 10) : 4;
     var indentCharacter = options.indent_char || ' ';
+    var preserve_newlines = (options.preserve_newlines === undefined) ? false : options.preserve_newlines;
     var selectorSeparatorNewline = (options.selector_separator_newline === undefined) ? true : options.selector_separator_newline;
     var end_with_newline = (options.end_with_newline === undefined) ? false : options.end_with_newline;
     var newline_between_rules = (options.newline_between_rules === undefined) ? true : options.newline_between_rules;
@@ -654,12 +656,16 @@ function css_beautify(source_text, options) {
         return str;
     }
 
-    function eatWhitespace() {
-        var result = '';
+    function eatWhitespace(preserve_newlines_local) {
+        var result = 0;
         while (whiteRe.test(peek())) {
             next();
-            result += ch;
+            if (ch === '\n' && preserve_newlines_local && preserve_newlines) {
+                output.add_new_line(true);
+                result++;
+            }
         }
+        newlinesFromLastWSEat = result;
         return result;
     }
 
@@ -834,15 +840,20 @@ function css_beautify(source_text, options) {
                 next();
                 output.space_before_token = true;
                 print_string("{}");
-                output.add_new_line();
-                if (newline_between_rules && indentLevel === 0) {
+                if (!eatWhitespace(true)) {
+                    output.add_new_line();
+                }
+
+                if (newlinesFromLastWSEat < 2 && newline_between_rules && indentLevel === 0) {
                     output.add_new_line(true);
                 }
             } else {
                 indent();
                 output.space_before_token = true;
                 print_string(ch);
-                output.add_new_line();
+                if (!eatWhitespace(true)) {
+                    output.add_new_line();
+                }
 
                 // when entering conditional groups, only rulesets are allowed
                 if (enteringConditionalGroup) {
@@ -857,13 +868,17 @@ function css_beautify(source_text, options) {
             outdent();
             output.add_new_line();
             print_string(ch);
-            output.add_new_line();
             insideRule = false;
             insidePropertyValue = false;
             if (nestedLevel) {
                 nestedLevel--;
             }
-            if (newline_between_rules && indentLevel === 0) {
+
+            if (!eatWhitespace(true)) {
+                output.add_new_line();
+            }
+
+            if (newlinesFromLastWSEat < 2 && newline_between_rules && indentLevel === 0) {
                 output.add_new_line(true);
             }
         } else if (ch === ":") {
@@ -901,7 +916,9 @@ function css_beautify(source_text, options) {
         } else if (ch === ';') {
             insidePropertyValue = false;
             print_string(ch);
-            output.add_new_line();
+            if (!eatWhitespace(true)) {
+                output.add_new_line();
+            }
         } else if (ch === '(') { // may be a url
             if (lookBack("url")) {
                 print_string(ch);
@@ -924,8 +941,7 @@ function css_beautify(source_text, options) {
             parenLevel--;
         } else if (ch === ',') {
             print_string(ch);
-            eatWhitespace();
-            if (selectorSeparatorNewline && !insidePropertyValue && parenLevel < 1) {
+            if (!eatWhitespace(true) && selectorSeparatorNewline && !insidePropertyValue && parenLevel < 1) {
                 output.add_new_line();
             } else {
                 output.space_before_token = true;
@@ -952,8 +968,11 @@ function css_beautify(source_text, options) {
             print_string(ch);
         } else if (ch === '=') { // no whitespace before or after
             eatWhitespace();
-            ch = '=';
-            print_string(ch);
+            print_string('=');
+            if (whiteRe.test(ch)) {
+                ch = '';
+            }
+
         } else {
             preserveSingleSpace();
             print_string(ch);
@@ -982,6 +1001,7 @@ css_beautify.CONDITIONAL_GROUP_RULE = {
 };
 
 module.exports = css_beautify;
+
 
 /***/ })
 /******/ ]);
