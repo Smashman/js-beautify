@@ -38,7 +38,7 @@ var legacy_html = {
 };
 
 
-var dist_js = {
+var dist_full = {
   entry: './js/src/index.js',
   output: {
     library: 'beautifier',
@@ -49,4 +49,4 @@ var dist_js = {
   }
 };
 
-module.exports = [dist_js, legacy_js, legacy_css, legacy_html];
+module.exports = [dist_full, legacy_js, legacy_css, legacy_html];
